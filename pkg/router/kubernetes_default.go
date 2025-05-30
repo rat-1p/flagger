@@ -42,7 +42,7 @@ type KubernetesDefaultRouter struct {
 	logger        *zap.SugaredLogger
 	labelSelector string
 	labelValue    string
-	ports         map[string]int32
+	ports         []flaggerv1.CanaryServicePort
 }
 
 // Initialize creates the primary and canary services
@@ -122,18 +122,8 @@ func (c *KubernetesDefaultRouter) reconcileService(canary *flaggerv1.Canary, nam
 	}
 
 	// set additional ports
-	for n, p := range c.ports {
-		cp := corev1.ServicePort{
-			Name:     n,
-			Protocol: corev1.ProtocolTCP,
-			Port:     p,
-			TargetPort: intstr.IntOrString{
-				Type:   intstr.Int,
-				IntVal: p,
-			},
-		}
-
-		svcSpec.Ports = append(svcSpec.Ports, cp)
+	for _, port := range c.ports {
+		svcSpec.Ports = append(svcSpec.Ports, port.ToCoreV1ServicePort())
 	}
 
 	if metadata == nil {

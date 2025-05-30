@@ -206,7 +206,7 @@ func (c *DaemonSetController) HasTargetChanged(cd *flaggerv1.Canary) (bool, erro
 }
 
 // GetMetadata returns the pod label selector and svc ports
-func (c *DaemonSetController) GetMetadata(cd *flaggerv1.Canary) (string, string, map[string]int32, error) {
+func (c *DaemonSetController) GetMetadata(cd *flaggerv1.Canary) (string, string, []flaggerv1.CanaryServicePort, error) {
 	targetName := cd.Spec.TargetRef.Name
 
 	canaryDae, err := c.kubeClient.AppsV1().DaemonSets(cd.Namespace).Get(context.TODO(), targetName, metav1.GetOptions{})
@@ -219,10 +219,7 @@ func (c *DaemonSetController) GetMetadata(cd *flaggerv1.Canary) (string, string,
 		return "", "", nil, fmt.Errorf("getSelectorLabel failed: %w", err)
 	}
 
-	var ports map[string]int32
-	if cd.Spec.Service.PortDiscovery {
-		ports = getPorts(cd, canaryDae.Spec.Template.Spec.Containers)
-	}
+	ports := getPorts(cd, canaryDae.Spec.Template.Spec.Containers)
 	return label, labelValue, ports, nil
 }
 
