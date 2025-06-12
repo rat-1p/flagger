@@ -230,11 +230,17 @@ type CanaryService struct {
 	Canary *CustomMetadata `json:"canary,omitempty"`
 }
 
+// CanaryServicePort defines the fields used for explicitly defining extra ports on the generated Kubernetes service.
 type CanaryServicePort struct {
-	Name        string             `json:"name"`
-	ServicePort int32              `json:"port"`
-	TargetPort  intstr.IntOrString `json:"targetPort"`
-	AppProtocol string             `json:"appProtocol,omitempty"`
+	// Name of the service port
+	Name string `json:"name"`
+	// ServicePort is the port number of the service
+	ServicePort int32 `json:"port"`
+	// TargetPort is the port number or name of port on the container
+	TargetPort intstr.IntOrString `json:"targetPort"`
+	// AppProtocol is the application protocol for the exposed port
+	// +optional
+	AppProtocol string `json:"appProtocol,omitempty"`
 }
 
 func (csp CanaryServicePort) ToCoreV1ServicePort() corev1.ServicePort {

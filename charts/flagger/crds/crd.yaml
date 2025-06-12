@@ -197,6 +197,25 @@ spec:
                     portDiscovery:
                       description: Enable port dicovery
                       type: boolean
+                    extraPorts:
+                      description: Extra ports to be added to the service
+                      type: array
+                      items:
+                        type: object
+                        required: ["name","port","targetPort"]
+                        properties:
+                          name:
+                            description: Name of the extra port
+                            type: string
+                          port:
+                            description: Port number of the extra port
+                            type: integer
+                          targetPort:
+                            description: Container target port name
+                            x-kubernetes-int-or-string: true
+                          appProtocol:
+                            description: Application protocol of the port
+                            type: string
                     headless:
                       description: Headless if set to true, generates headless Kubernetes services.
                       type: boolean
