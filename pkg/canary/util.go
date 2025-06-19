@@ -33,8 +33,12 @@ var sidecars = map[string]bool{
 	"envoy":       true,
 }
 
-func getPorts(cd *flaggerv1.Canary, cs []corev1.Container) map[string]int32 {
-	ports := make(map[string]int32, len(cs))
+func getPorts(cd *flaggerv1.Canary, cs []corev1.Container) []flaggerv1.CanaryServicePort {
+	if !cd.Spec.Service.PortDiscovery {
+		return cd.Spec.Service.ExtraPorts
+	}
+
+	ports := make([]flaggerv1.CanaryServicePort, 0, len(cs))
 	for _, container := range cs {
 		// exclude service mesh proxies based on container name
 		if _, ok := sidecars[container.Name]; ok {
@@ -63,7 +67,14 @@ func getPorts(cd *flaggerv1.Canary, cs []corev1.Container) map[string]int32 {
 				name = p.Name
 			}
 
-			ports[name] = p.ContainerPort
+			cp := flaggerv1.CanaryServicePort{
+				Name:        name,
+				ServicePort: p.ContainerPort,
+				TargetPort:  intstr.FromInt(int(p.ContainerPort)),
+				AppProtocol: string(corev1.ProtocolTCP),
+			}
+
+			ports = append(ports, cp)
 		}
 	}
 	return ports

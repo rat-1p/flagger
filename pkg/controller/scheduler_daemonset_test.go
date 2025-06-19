@@ -27,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -445,6 +446,59 @@ func TestScheduler_DaemonSetTargetPortName(t *testing.T) {
 
 	for _, port := range canarySvc.Spec.Ports {
 		require.True(t, matchPorts(fmt.Sprintf("%s %v", port.Name, port.Port)))
+	}
+}
+
+func TestScheduler_DaemonSetExtraPorts(t *testing.T) {
+	mocks := newDaemonSetFixture(nil)
+
+	extraPorts := []flaggerv1.CanaryServicePort{
+		{
+			Name:        "https",
+			ServicePort: 443,
+			TargetPort:  intstr.FromInt(443),
+			AppProtocol: string(corev1.ProtocolTCP),
+		},
+		{
+			Name:        "internal",
+			ServicePort: 9000,
+			TargetPort:  intstr.FromString("internal"),
+			AppProtocol: string(corev1.ProtocolUDP),
+		},
+	}
+
+	cd, err := mocks.flaggerClient.FlaggerV1beta1().Canaries("default").Get(context.TODO(), "podinfo", metav1.GetOptions{})
+	require.NoError(t, err)
+	cd.Spec.Service.Port = 80
+	cd.Spec.Service.TargetPort = intstr.FromInt(9898)
+	cd.Spec.Service.PortDiscovery = false
+	cd.Spec.Service.ExtraPorts = extraPorts
+	_, err = mocks.flaggerClient.FlaggerV1beta1().Canaries("default").Update(context.TODO(), cd, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	mocks.ctrl.advanceCanary("podinfo", "default")
+
+	canarySvc, err := mocks.kubeClient.CoreV1().Services("default").Get(context.TODO(), "podinfo-canary", metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Len(t, canarySvc.Spec.Ports, 3)
+
+	matchPorts := func(lookup string) bool {
+		switch lookup {
+		case
+			"http 80 9898 ",
+			"https 443 443 TCP",
+			"internal 9000 internal UDP":
+			return true
+		}
+		return false
+	}
+
+	for _, port := range canarySvc.Spec.Ports {
+		appProtocol := ""
+		if port.AppProtocol != nil {
+			appProtocol = *port.AppProtocol
+		}
+		require.True(t, matchPorts(fmt.Sprintf("%s %v %s %s", port.Name, port.Port, port.TargetPort.String(), appProtocol)), port)
 	}
 }
 

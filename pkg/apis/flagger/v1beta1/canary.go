@@ -22,6 +22,7 @@ import (
 
 	"github.com/fluxcd/flagger/pkg/apis/gatewayapi/v1beta1"
 	istiov1beta1 "github.com/fluxcd/flagger/pkg/apis/istio/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -146,6 +147,10 @@ type CanaryService struct {
 	// PortDiscovery adds all container ports to the generated Kubernetes service
 	PortDiscovery bool `json:"portDiscovery"`
 
+	// ExtraPorts defines additional ports for the generated Kubernetes service.
+	// +optional
+	ExtraPorts []CanaryServicePort `json:"extraPorts,omitempty"`
+
 	// Headless if set to true, generates headless Kubernetes services.
 	// ref: https://kubernetes.io/docs/concepts/services-networking/service/#headless-services
 	// +optional
@@ -223,6 +228,33 @@ type CanaryService struct {
 	// Canary is the metadata to add to the canary service
 	// +optional
 	Canary *CustomMetadata `json:"canary,omitempty"`
+}
+
+// CanaryServicePort defines the fields used for explicitly defining extra ports on the generated Kubernetes service.
+type CanaryServicePort struct {
+	// Name of the service port
+	Name string `json:"name"`
+	// ServicePort is the port number of the service
+	ServicePort int32 `json:"port"`
+	// TargetPort is the port number or name of port on the container
+	TargetPort intstr.IntOrString `json:"targetPort"`
+	// AppProtocol is the application protocol for the exposed port
+	// +optional
+	AppProtocol string `json:"appProtocol,omitempty"`
+}
+
+func (csp CanaryServicePort) ToCoreV1ServicePort() corev1.ServicePort {
+	cp := corev1.ServicePort{
+		Name:       csp.Name,
+		Port:       csp.ServicePort,
+		TargetPort: csp.TargetPort,
+	}
+
+	if csp.AppProtocol != "" {
+		cp.AppProtocol = &csp.AppProtocol
+	}
+
+	return cp
 }
 
 // CanaryAnalysis is used to describe how the analysis should be done

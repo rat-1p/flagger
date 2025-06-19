@@ -219,7 +219,7 @@ func (c *DeploymentController) ScaleFromZero(cd *flaggerv1.Canary) error {
 }
 
 // GetMetadata returns the pod label selector and svc ports
-func (c *DeploymentController) GetMetadata(cd *flaggerv1.Canary) (string, string, map[string]int32, error) {
+func (c *DeploymentController) GetMetadata(cd *flaggerv1.Canary) (string, string, []flaggerv1.CanaryServicePort, error) {
 	targetName := cd.Spec.TargetRef.Name
 
 	canaryDep, err := c.kubeClient.AppsV1().Deployments(cd.Namespace).Get(context.TODO(), targetName, metav1.GetOptions{})
@@ -232,10 +232,7 @@ func (c *DeploymentController) GetMetadata(cd *flaggerv1.Canary) (string, string
 		return "", "", nil, fmt.Errorf("getSelectorLabel failed: %w", err)
 	}
 
-	var ports map[string]int32
-	if cd.Spec.Service.PortDiscovery {
-		ports = getPorts(cd, canaryDep.Spec.Template.Spec.Containers)
-	}
+	ports := getPorts(cd, canaryDep.Spec.Template.Spec.Containers)
 
 	return label, labelValue, ports, nil
 }

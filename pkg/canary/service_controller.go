@@ -61,7 +61,7 @@ func (c *ServiceController) SetStatusPhase(cd *flaggerv1.Canary, phase flaggerv1
 }
 
 // GetMetadata returns the pod label selector, label value and svc ports
-func (c *ServiceController) GetMetadata(_ *flaggerv1.Canary) (string, string, map[string]int32, error) {
+func (c *ServiceController) GetMetadata(_ *flaggerv1.Canary) (string, string, []flaggerv1.CanaryServicePort, error) {
 	return "", "", nil, nil
 }
 
